@@ -71,7 +71,7 @@ class Question(NamedTuple):
         return ans
 
 
-def load(filename='icbc-practice-questions-english.xml') -> Tuple[Question]:
+def load(filename) -> Tuple[Question]:
     tree = ET.parse(filename)
     root = tree.getroot()
     questions = tuple(Question.from_node(q) for q in root.findall('./questions/question'))
@@ -81,7 +81,7 @@ def load(filename='icbc-practice-questions-english.xml') -> Tuple[Question]:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    questions = load()
+    questions = load('icbc-practice-questions-english.xml')
 
     assets = []
 

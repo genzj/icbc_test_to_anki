@@ -46,34 +46,42 @@ my_model = genanki.Model(
 ])
 
 
-my_deck = genanki.Deck(
+def load_deck(deck: genanki.Deck, source: str, sort_id_base: int):
+    questions = datasource.load(source)
+    assets = [question.image_asset for question in questions if question.image_asset]
+
+    for question in questions:
+        note = genanki.Note(
+            model=my_model,
+            fields=[
+                '%04d' % (question.id_ + sort_id_base,),
+                f'{question.id_}. {question.text}',
+                question.anki_image,
+                question.anki_json('answer'),
+                question.anki_json('distractors'),
+                question.chapter,
+                question.source,
+            ]
+        )
+
+        deck.add_note(note)
+    return assets
+
+rule_deck = genanki.Deck(
     0x3e720001,
     'ICBC Practice Test'
 )
+sign_deck = genanki.Deck(
+    0x3e720002,
+    'ICBC Practice Test (Signs)'
+)
 
-
-questions = datasource.load()
-assets = [question.image_asset for question in questions if question.image_asset]
+assets = []
+assets += load_deck(rule_deck, 'icbc-practice-questions-english.xml', 0)
+assets += load_deck(sign_deck, 'icbc-practice-questions-english-signs.xml', 1000)
 datasource.aio_download(assets)
 
-for question in questions:
-    note = genanki.Note(
-        model=my_model,
-        fields=[
-            '%04d' % (question.id_,),
-            f'{question.id_}. {question.text}',
-            question.anki_image,
-            question.anki_json('answer'),
-            question.anki_json('distractors'),
-            question.chapter,
-            question.source,
-        ]
-    )
-
-    my_deck.add_note(note)
-
-
-deck = genanki.Package(my_deck)
+deck = genanki.Package([rule_deck, sign_deck])
 deck.media_files = [asset.path for asset in assets]
 deck.write_to_file('icbc-practice-test.apkg')
 L.info('deck generated.')
