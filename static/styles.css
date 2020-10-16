@@ -1,0 +1,36 @@
+.card {
+  font-family: arial;
+  font-size: 20px;
+  text-align: center;
+  color: black;
+  background-color: white;
+}
+
+.question-text {
+  font-size: 25px;
+}
+
+img {
+  max-height: 30vh;
+}
+
+ol#items {
+  list-style-type: none;
+}
+
+ol#items li, #correct {
+  line-height: 1.4;
+  text-align: left;
+  max-width: 60%;
+  margin: 1em auto;
+}
+
+#source {
+  margin-top: 2em;
+  font-size: 0.9rem;
+  color: darkgrey;
+  text-align: left;
+  max-width: 60%;
+  margin: 2em auto;
+}
+
