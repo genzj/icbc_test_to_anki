@@ -2,6 +2,7 @@ import asyncio
 import io
 import logging
 
+from enum import Enum
 from urllib.parse import urlparse, ParseResult
 from typing import NamedTuple, Union, Optional, List
 from mimetypes import guess_type
@@ -11,6 +12,7 @@ from aiohttp_requests import requests
 
 
 L = logging.getLogger(__name__)
+
 
 class FileAsset:
     path: Path
@@ -43,6 +45,12 @@ class FileAsset:
         return f'<{self.__class__.__qualname__} {self.path}>'
 
 
+class DownloadStatus(Enum):
+    FAILED = 0
+    USE_CACHED = 1
+    DOWNLOADED = 2
+
+
 class DownloadableFileAsset:
     local: FileAsset
     url: str
@@ -68,8 +76,8 @@ class DownloadableFileAsset:
 
     async def download(self, force=False):
         if not force and self.local.exists():
-            L.info('%s exists, ignore url %s', self.path, self.url)
-            return
+            L.debug('%s exists, ignore url %s', self.path, self.url)
+            return DownloadStatus.USE_CACHED
 
         response = await requests.get(self.url)
         if response.status != 200:
@@ -80,6 +88,7 @@ class DownloadableFileAsset:
         with open(self.path, 'wb') as f:
             f.write(await response.read())
         L.info('%s saved to %s', self.url, self.local)
+        return DownloadStatus.DOWNLOADED
 
     def __repr__(self):
         return f'<{self.__class__.__qualname__} {self.url} -> {self.path}>'
@@ -95,7 +104,22 @@ def aio_download(assets: List[DownloadableFileAsset], force: bool=False):
     loop = asyncio.new_event_loop()
     done, pending = loop.run_until_complete(download_many(assets, force=force))
 
-    L.info('%d/%d items downloaded', len(done), len(assets))
+    results = {
+        DownloadStatus.FAILED: 0,
+        DownloadStatus.DOWNLOADED: 0,
+        DownloadStatus.USE_CACHED: 0,
+    }
+
+    for x in done:
+        try:
+            k = x.result()
+        except Exception as ex:
+            L.exception('asset download failed:', exc_info=ex)
+            k = DownloadStatus.FAILED
+        results[k] += 1
+
+    L.info('cached/downloaded/failed assets: %d/%d/%d', results[DownloadStatus.USE_CACHED], results[DownloadStatus.DOWNLOADED], results[DownloadStatus.FAILED])
+
 
 
 if __name__ == '__main__':
